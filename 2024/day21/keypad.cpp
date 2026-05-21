@@ -7,72 +7,6 @@
 
 using namespace std;
 
-/*
-enum Direction {
-    UP,
-    DOWN,
-    RIGHT,
-    LEFT
-};
-
-// permissions for moving
-// 4 bit number a3     a2      a1     a0
-// means     up ^ down ^ right ^ left ^
-// encode permissions into the array
-
-+---+---+---+
-| 7 | 8 | 9 |
-+---+---+---+
-| 4 | 5 | 6 |
-+---+---+---+
-| 1 | 2 | 3 |
-+---+---+---+
-    | 0 | A |
-    +---+---+
-const int keys[4][3]
-    =  {{0b0110, 0b1110, 0b1010},
-        {0b0111, 0b1111, 0b1011},
-        {0b0101, 0b1111, 0b1011},
-        {0,      0b0101, 0b1001}};
-
-    +---+---+
-    | ^ | A |
-+---+---+---+
-| < | v | > |
-+---+---+---+
-const int arrows[2][3]
-    =  {{0,      0b0110, 0b1010},
-        {0b0100, 0b1101, 0b1001}};
-
-// checks if that bit is set in the permissions
-int can_move_keys(int x, int y, int dir) {
-    return (keys[y][x] & (1 << dir)) > 0;
-}
-
-// checks if that bit is set in the permissions
-int can_move_arrows(int x, int y, int dir) {
-    return (arrows[y][x] & (1 << dir)) > 0;
-}
-
-map<char, pair<int, int>> positions
-    =  {{'7', {0, 0}}, {'8', {1, 0}}, {'9', {2, 0}},
-        {'4', {0, 1}}, {'5', {1, 1}}, {'6', {2, 1}},
-        {'1', {0, 2}}, {'2', {1, 2}}, {'3', {2, 2}},
-        {' ', {0, 3}}, {'0', {1, 3}}, {'A', {2, 3}}};
-*/
-
-/*
-+---+---+---+
-| 7 | 8 | 9 |
-+---+---+---+
-| 4 | 5 | 6 |
-+---+---+---+
-| 1 | 2 | 3 |
-+---+---+---+
-    | 0 | A |
-    +---+---+
-*/
-
 const char keypos[4][3] =
     {{'7', '8', '9'},
      {'4', '5', '6'},
@@ -87,10 +21,12 @@ map<char, int> int_values =
     {{' ', 0}, {'^', 1}, {'A', 2},
     {'<', 3}, {'v', 4}, {'>', 5}};
 
+/* Map of shortest strings for each transition  */
 map<pair<char, char>, vector<string>> keypaths;
 map<pair<char, char>, vector<string>> arrowpaths;
-long long memo[4][6][6] = {0};
+long long memo[26][6][6] = {0};
 
+/* Build the shortest paths for the number pad */
 vector<string> get_num_path(int sx, int sy, int ex, int ey) {
     int dx = ex - sx;
     int dy = ey - sy;
@@ -122,6 +58,7 @@ vector<string> get_num_path(int sx, int sy, int ex, int ey) {
     return vec;
 }
 
+/* Build the shortest paths for the arrow pad */
 vector<string> get_arrow_path(int sx, int sy, int ex, int ey) {
     int dx = ex - sx;
     int dy = ey - sy;
@@ -175,40 +112,37 @@ void build_paths(void) {
     }
 }
 
+/* Solve the subsequent states (which use the arrow pad) */
 long long solve_state(int depth, char src, char dst) {
     if (src == dst) {
-        cout << 'A';
         return 1;
     }
 
-    // cout << "starting at depth " << depth << endl;
     int srcix = int_values[src];
     int dstix = int_values[dst];
-    int min = memo[depth][srcix][dstix];
+    long long min = memo[depth][srcix][dstix];
     if (min != 0) {
         return min;
     }
 
-    min = INT_MAX;
+    min = LLONG_MAX;
     if (depth == 0) {
-        /* this is throwing an error because there is no paths for arrow keys */
         string str = arrowpaths.at({src, dst}).at(0);
-        int min = str.length();
-        cout << str;
+        min = str.length();
         memo[depth][srcix][dstix] = min;
         return min;
     }
 
-    int total;
-    char prev = 'A';
+    long long total;
     for (auto &str : arrowpaths.at({src, dst})) {
-        // cout << str << endl;
         total = 0;
+        char prev = 'A';
+
         for (auto &c : str) {
-            // cout << "going one level deeper\n";
             total += solve_state(depth - 1, prev, c);
             prev = c;
         }
+
         if (total < min) {
             min = total;
         }
@@ -218,18 +152,20 @@ long long solve_state(int depth, char src, char dst) {
     return min;
 }
 
+/* Solve the first state (uses the number pad) */
 long long first_state(char src, char dst) {
-    int total;
-    int min = INT_MAX;
-    char prev = 'A';
+    long long total;
+    long long min = LLONG_MAX;
+
     for (auto &str : keypaths.at({src, dst})) {
-        // cout << str << endl;
         total = 0;
+        char prev = 'A';
+
         for (auto &c : str) {
-            // cout << "going one level deeper\n";
-            total += solve_state(20, prev, c);
+            total += solve_state(24, prev, c);
             prev = c;
         }
+
         if (total < min) {
             min = total;
         }
@@ -257,7 +193,7 @@ int main() {
         total += complexity * atoi(ex);
         
     }
-    printf("\ngot total = %lld\n", total);
+    printf("Total complexity = %lld\n", total);
 
     return 0;
 }
